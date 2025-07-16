@@ -1,0 +1,56 @@
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: travel_mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: itinerary_db
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - travel_network
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: travel_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGO_URL=mongodb://mongodb:27017
+      - DATABASE_NAME=itinerary_db
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    depends_on:
+      - mongodb
+    networks:
+      - travel_network
+
+  # React Frontend
+  frontend:
+    build:
+      context: frontend/travelapp
+      dockerfile: Dockerfile
+    container_name: travel_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+    networks:
+      - travel_network
+    
+
+volumes:
+  mongodb_data:
+
+networks:
+  travel_network:
+    driver: bridge
